@@ -323,7 +323,7 @@
   var dataReady = false;
 
   var $ = function(id){ return document.getElementById(id); };
-  var screens = ["home","players-select","stage"];
+  var screens = ["players-select","stage"];
   function showScreen(name){
     screens.forEach(function(s){ $("screen-"+s).classList.toggle("rv-active", s === name); });
   }
