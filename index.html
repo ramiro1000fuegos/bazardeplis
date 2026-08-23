@@ -163,7 +163,7 @@
   }
   .rv-card.rv-visible{display:flex;}
 
-  .rv-mission-souscat{
+  .rv-mission-categorie{
     font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--teal);
     background:rgba(78,158,151,.12); border:1px solid rgba(78,158,151,.35);
     border-radius:999px; padding:5px 14px; flex-shrink:0;
@@ -201,36 +201,11 @@
   #btn-next-manche{ flex:1.4; }
 
   /* ---------- settings ---------- */
-  #screen-settings{ position:fixed; inset:0; background:var(--bg); z-index:20; }
-  .rv-field-label{ font-size:13px; color:var(--text-muted); margin-bottom:8px; display:block; }
-  .rv-input{
-    width:100%; background:var(--bg-raised); border:1px solid var(--line);
-    border-radius:10px; padding:13px 14px; color:var(--text); font-size:15px;
-  }
-  .rv-hint{ font-size:13px; color:var(--text-muted); line-height:1.5; margin:10px 0 22px; }
-  .rv-hint code{ background:var(--bg-raised); border-radius:4px; padding:1px 5px; font-size:12px; }
   .rv-inline-msg{ font-size:13px; border-radius:8px; padding:9px 12px; margin-top:10px; display:none; }
   .rv-inline-msg.rv-visible{display:block;}
   .rv-inline-msg.rv-ok{background:rgba(78,158,151,.12); color:var(--teal); border:1px solid rgba(78,158,151,.35);}
   .rv-inline-msg.rv-err{background:rgba(193,89,90,.1); color:#E8A5A5; border:1px solid rgba(193,89,90,.4);}
   .rv-inline-msg.rv-neutral{background:var(--bg-raised); color:var(--text-muted); border:1px solid var(--line);}
-
-  .rv-source-section-title{
-    font-size:13px; color:var(--text-muted); margin:26px 0 10px;
-    display:flex; justify-content:space-between; align-items:center;
-  }
-  .rv-source-card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
-  .rv-source-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .rv-source-label{ font-family:var(--font-display); font-weight:600; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .rv-source-meta{ font-size:13px; color:var(--text-muted); margin-top:3px; }
-  .rv-source-actions{ display:flex; gap:6px; flex-shrink:0; }
-  .rv-source-actions button{ background:none; border:none; color:var(--text-muted); width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; }
-  .rv-source-actions button:hover{ color:var(--text); background:rgba(255,255,255,.05); }
-  .rv-source-actions svg{width:16px; height:16px;}
-  .rv-source-details{ margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--text-muted); display:none; }
-  .rv-source-details.rv-open{display:block;}
-  .rv-source-game-row{ display:flex; justify-content:space-between; padding:4px 0; }
-  .rv-empty-sources{ font-size:14px; color:var(--text-muted); text-align:center; padding:20px 0; }
 
   [hidden]{display:none !important;}
 
@@ -286,7 +261,7 @@
       </div>
 
       <div class="rv-card" id="stage-card">
-        <span class="rv-mission-souscat" id="card-souscat"></span>
+        <span class="rv-mission-categorie" id="card-categorie"></span>
         <div class="rv-mission-titre" id="card-titre"></div>
         <div class="rv-mission-texte" id="card-texte"></div>
         <span class="rv-mission-cartes" id="card-cartes"></span>
@@ -311,13 +286,12 @@
   "use strict";
 
   // ---- Config ---------------------------------------------------------
-  var DEFAULT_SOURCES = [
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJwGVXOGrH4pRy0emVTaOQC7S5xVqt93KBRrij63FWayGgjv3WLZaVNTXpxVra6UbLQRqXqby_RrYd/pub?gid=0&single=true&output=csv"
-  ];
-
-  var STORAGE_SOURCES = "bazar.sources";
-  var CACHE_PREFIX = "bazar.cache.";
-  var STORAGE_DECOCHEES = "bazar.souscategories.decochees";
+ 
+  var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJwGVXOGrH4pRy0emVTaOQC7S5xVqt93KBRrij63FWayGgjv3WLZaVNTXpxVra6UbLQRqXqby_RrYd/pub?gid=0&single=true&output=csv"
+  var STORAGE_CSV_CACHE = "bazar.csv.cache";
+  var STORAGE_DERNIERE_OUVERTURE = "bazar.derniereOuverture";
+  var STORAGE_MISSIONS_ECARTEES = "bazar.missions.ecartees";  
+  
   var STORAGE_SOUSCATS_UTILISEES = "bazar.souscategories.utilisees";
   var STORAGE_MISSIONS_VUES = "bazar.missions.vues";
 
@@ -347,14 +321,15 @@
   // ---- State ------------------------------------------------------------
   var allRows = [];
   var subcategories = [];
-  var deselectedSubcatKeys = new Set();   // décochées, persisté
+  var categoriesVues = new Set();   // en mémoire seulement, jamais persisté, remis à zéro à chaque nouvelle partie
+  var missionsEcartees = new Set(); // persisté, vide pour l'instant — pas d'UI encore pour l'alimenter
   var souscategoriesUtilisees = new Set(); // persisté, reset seulement à cycle complet
   var missionsVues = {};                   // persisté, clé -> bool
   var playerCount = null;
   var manche = 0;
 
   var $ = function(id){ return document.getElementById(id); };
-  var screens = ["home","category-select","players-select","stage","settings"];
+  var screens = ["home","players-select","stage"];
   function showScreen(name){
     screens.forEach(function(s){ $("screen-"+s).classList.toggle("rv-active", s === name); });
   }
@@ -362,7 +337,6 @@
   function normalizeKey(k){
     return (k||"").toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   }
-  function isHttpUrl(u){ return /^https?:\/\//i.test((u||"").trim()); }
   function uniqueBy(rows, field){
     var map = {}, order = [];
     rows.forEach(function(r){
@@ -379,11 +353,6 @@
     v = (v||"").toString().trim().toLowerCase();
     return v === "oui" || v === "yes" || v === "true" || v === "1" || v === "x";
   }
-  function getGuaranteedSubcatKeys(){
-    var s = new Set();
-    allRows.forEach(function(r){ if (isTruthy(r.garantie_partie)) s.add(normalizeKey(r.souscategorie)); });
-    return s;
-  }
   function parseCartesOptions(val){
     return (val||"").toString().split("/")
       .map(function(v){ return parseInt(v.trim(), 10); })
@@ -391,20 +360,17 @@
   }
 
   // ---- Sources registry (localStorage) -----------------------------------
-  function getSources(){
-    try { return JSON.parse(localStorage.getItem(STORAGE_SOURCES) || "[]"); }
-    catch(e){ return []; }
-  }
-  function saveSources(list){ try { localStorage.setItem(STORAGE_SOURCES, JSON.stringify(list)); } catch(e){} }
-  function getCache(url){
-    try { var raw = localStorage.getItem(CACHE_PREFIX + url); return raw ? JSON.parse(raw) : null; }
-    catch(e){ return null; }
-  }
-  function setCache(url, rows){
-    try { localStorage.setItem(CACHE_PREFIX + url, JSON.stringify({fetchedAt: Date.now(), rows: rows})); } catch(e){}
-  }
-  function removeCache(url){ try { localStorage.removeItem(CACHE_PREFIX + url); } catch(e){} }
 
+  function verifierExpiration7Jours(){
+    var SEPT_JOURS_MS = 7 * 24 * 60 * 60 * 1000;
+    var derniere = parseInt(localStorage.getItem(STORAGE_DERNIERE_OUVERTURE), 10);
+    if (isNaN(derniere) || (Date.now() - derniere) > SEPT_JOURS_MS){
+      localStorage.removeItem(STORAGE_SOUSCATS_UTILISEES);
+      localStorage.removeItem(STORAGE_MISSIONS_VUES);
+    }
+    localStorage.setItem(STORAGE_DERNIERE_OUVERTURE, Date.now());
+  }  
+  
   function rowsFromParsed(data){
     var out = [];
     data.forEach(function(row){
@@ -450,25 +416,30 @@
     });
   }
 
-  function buildAggregateRows(){
-    var sources = getSources();
-    if (sources.length === 0) return SAMPLE_ROWS.slice();
-    var merged = [];
-    sources.forEach(function(s){
-      var cached = getCache(s.url);
-      if (cached && cached.rows) merged = merged.concat(cached.rows);
+  function fetchCsvAvecCache(cb){
+    Papa.parse(CSV_URL, {
+      download:true, header:true, skipEmptyLines:true,
+      complete:function(results){
+        var rows = rowsFromParsed(results.data || []);
+        if (rows.length){
+          try { localStorage.setItem(STORAGE_CSV_CACHE, JSON.stringify(rows)); } catch(e){}
+          cb(rows);
+        } else {
+          cb(lireCacheCsvOuExemple());
+        }
+      },
+      error:function(){ cb(lireCacheCsvOuExemple()); }
     });
-    return merged.length ? merged : SAMPLE_ROWS.slice();
   }
+  function lireCacheCsvOuExemple(){
+    try {
+      var raw = localStorage.getItem(STORAGE_CSV_CACHE);
+      if (raw) return JSON.parse(raw);
+    } catch(e){}
+    return SAMPLE_ROWS.slice();
+  }  
 
   // ---- Persisted selection / mémoire de tirage ---------------------------
-  function loadDeselected(){
-    try { return new Set(JSON.parse(localStorage.getItem(STORAGE_DECOCHEES) || "[]")); }
-    catch(e){ return new Set(); }
-  }
-  function saveDeselected(){
-    try { localStorage.setItem(STORAGE_DECOCHEES, JSON.stringify(Array.from(deselectedSubcatKeys))); } catch(e){}
-  }
   function loadSouscatsUtilisees(){
     try { return new Set(JSON.parse(localStorage.getItem(STORAGE_SOUSCATS_UTILISEES) || "[]")); }
     catch(e){ return new Set(); }
@@ -486,74 +457,25 @@
 
   // ---- Bootstrap ----------------------------------------------------------
   function bootstrap(){
-    var sources = getSources();
-    if (sources.length === 0 && DEFAULT_SOURCES.length){
-      var btn = $("btn-home-start");
-      var originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = "Chargement…";
-      restoreDefaultSources(function(){
-        btn.disabled = false;
-        btn.textContent = originalText;
-        goToCategories();
-      });
-    } else {
-      goToCategories();
-    }
-  }
-
-  function goToCategories(){
-    allRows = buildAggregateRows();
-    subcategories = uniqueBy(allRows, "souscategorie");
-    deselectedSubcatKeys = loadDeselected();
-    renderCategoryList();
-    showScreen("category-select");
-  }
-
-  // ---- Catégories ----------------------------------------------------------
-  function renderCategoryList(){
-    var wrap = $("category-list");
-    wrap.innerHTML = "";
-    subcategories.forEach(function(cat){
-      var chip = document.createElement("button");
-      chip.className = "rv-chip"; chip.type = "button"; chip.textContent = cat.label;
-      var checked = !deselectedSubcatKeys.has(cat.key);
-      chip.setAttribute("aria-pressed", checked ? "true" : "false");
-      chip.addEventListener("click", function(){
-        if (deselectedSubcatKeys.has(cat.key)) deselectedSubcatKeys.delete(cat.key);
-        else deselectedSubcatKeys.add(cat.key);
-        saveDeselected();
-        chip.setAttribute("aria-pressed", deselectedSubcatKeys.has(cat.key) ? "false" : "true");
-        updateCatCountNote();
-      });
-      wrap.appendChild(chip);
+    verifierExpiration7Jours();
+    missionsEcartees = loadMissionsEcartees();
+    var btn = $("btn-home-start");
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Chargement…";
+    fetchCsvAvecCache(function(rows){
+      allRows = rows;
+      btn.disabled = false;
+      btn.textContent = originalText;
+      goToPlayers();
     });
-    updateCatCountNote();
   }
-
-  function selectedSubcatKeys(){
-    return subcategories.map(function(c){ return c.key; }).filter(function(k){ return !deselectedSubcatKeys.has(k); });
-  }
-
-  function updateCatCountNote(){
-    var n = selectedSubcatKeys().length;
-    $("cat-count-note").textContent = n + (n > 1 ? " catégories sélectionnées" : " catégorie sélectionnée");
-    $("btn-cat-continue").disabled = n === 0;
-  }
-
-  $("btn-cat-all").addEventListener("click", function(){ deselectedSubcatKeys = new Set(); saveDeselected(); renderCategoryList(); });
-  $("btn-cat-none").addEventListener("click", function(){
-    deselectedSubcatKeys = new Set(subcategories.map(function(c){ return c.key; }));
-    saveDeselected(); renderCategoryList();
-  });
-  $("btn-cat-continue").addEventListener("click", function(){ goToPlayers(); });
 
   // ---- Joueurs ----------------------------------------------------------
   function goToPlayers(){
     renderPlayersGrid();
     showScreen("players-select");
   }
-  $("btn-catback").addEventListener("click", goToCategories);
 
   function renderPlayersGrid(){
     var wrap = $("players-grid");
@@ -578,8 +500,7 @@
   function startPartie(){
     souscategoriesUtilisees = loadSouscatsUtilisees();
     missionsVues = loadMissionsVues();
-    getGuaranteedSubcatKeys().forEach(function(k){ souscategoriesUtilisees.delete(k); });
-    saveSouscatsUtilisees();
+    categoriesVues = new Set();
     manche = 0;
     resetStageVisual();
     showScreen("stage");
@@ -595,10 +516,9 @@
   }
 
   function buildEligiblePool(){
-    var selected = new Set(selectedSubcatKeys());
     var champ = "cartes_" + playerCount;
     return allRows.filter(function(r){
-      if (!selected.has(normalizeKey(r.souscategorie))) return false;
+      if (missionsEcartees.has(missionKey(r))) return false;
       if (!parseCartesOptions(r[champ]).length) return false;
       var seuil = parseInt(r.top_rattrapage, 10);
       if (!isNaN(seuil) && manche < seuil) return false;
@@ -609,21 +529,35 @@
   function tirerMissionSuivante(incrementerManche){
     if (incrementerManche) manche++;
     $("manche-number").textContent = manche;
-
+  
     var pool = buildEligiblePool();
     if (!pool.length){ showEmpty(); return; }
-
-    var subcatsDansPool = uniqueBy(pool, "souscategorie").map(function(c){ return c.key; });
-    var subcatsRestantes = subcatsDansPool.filter(function(k){ return !souscategoriesUtilisees.has(k); });
+  
+    // Niveau 1 : catégorie
+    var categoriesDansPool = uniqueBy(pool, "categorie").map(function(c){ return c.key; });
+    var categoriesRestantes = categoriesDansPool.filter(function(k){ return !categoriesVues.has(k); });
+    if (!categoriesRestantes.length){
+      categoriesVues = new Set();
+      categoriesRestantes = categoriesDansPool.slice();
+    }
+    var categorieChoisie = categoriesRestantes[Math.floor(Math.random() * categoriesRestantes.length)];
+    categoriesVues.add(categorieChoisie);
+  
+    var poolCategorie = pool.filter(function(r){ return normalizeKey(r.categorie) === categorieChoisie; });
+  
+    // Niveau 2 : sous-catégorie, à l'intérieur de la catégorie choisie
+    var subcatsDansCategorie = uniqueBy(poolCategorie, "souscategorie").map(function(c){ return c.key; });
+    var subcatsRestantes = subcatsDansCategorie.filter(function(k){ return !souscategoriesUtilisees.has(k); });
     if (!subcatsRestantes.length){
-      souscategoriesUtilisees = new Set();
-      subcatsRestantes = subcatsDansPool.slice();
+      subcatsDansCategorie.forEach(function(k){ souscategoriesUtilisees.delete(k); });
+      subcatsRestantes = subcatsDansCategorie.slice();
     }
     var subcatChoisie = subcatsRestantes[Math.floor(Math.random() * subcatsRestantes.length)];
     souscategoriesUtilisees.add(subcatChoisie);
     saveSouscatsUtilisees();
-
-    var missionsSubcat = pool.filter(function(r){ return normalizeKey(r.souscategorie) === subcatChoisie; });
+  
+    // Niveau 3 : mission, à l'intérieur de la sous-catégorie choisie
+    var missionsSubcat = poolCategorie.filter(function(r){ return normalizeKey(r.souscategorie) === subcatChoisie; });
     var missionsNonVues = missionsSubcat.filter(function(r){ return !missionsVues[missionKey(r)]; });
     if (!missionsNonVues.length){
       missionsSubcat.forEach(function(r){ missionsVues[missionKey(r)] = false; });
@@ -632,15 +566,23 @@
     var mission = missionsNonVues[Math.floor(Math.random() * missionsNonVues.length)];
     missionsVues[missionKey(mission)] = true;
     saveMissionsVues();
-
+  
     afficherMission(mission);
   }
 
+  function loadMissionsEcartees(){
+    try { return new Set(JSON.parse(localStorage.getItem(STORAGE_MISSIONS_ECARTEES) || "[]")); }
+    catch(e){ return new Set(); }
+  }
+  function saveMissionsEcartees(){
+    try { localStorage.setItem(STORAGE_MISSIONS_ECARTEES, JSON.stringify(Array.from(missionsEcartees))); } catch(e){}
+  }
+  
   function afficherMission(mission){
     $("stage-idle").style.display = "none";
     $("stage-empty").classList.remove("rv-visible");
 
-    $("card-souscat").textContent = mission.souscategorie;
+    $("card-categorie").textContent = mission.categorie;
     $("card-titre").textContent = mission.titre;
     $("card-texte").innerHTML = sanitizeCardText(mission.texte);
 
@@ -678,11 +620,11 @@
     var card = $("stage-card");
     var titreEl = $("card-titre");
     var texteEl = $("card-texte");
-    var souscatEl = $("card-souscat");
+    var categorieEl = $("card-categorie");
     var cartesEl = $("card-cartes");
 
     var totalH = card.clientHeight;
-    var reserve = souscatEl.offsetHeight + cartesEl.offsetHeight + 48; // gaps
+    var reserve = categorieEl.offsetHeight + cartesEl.offsetHeight + 48; // gaps
     var dispoH = Math.max(totalH - reserve, 80);
     var titreH = Math.round(dispoH * 0.3);
     var texteH = dispoH - titreH;
@@ -708,161 +650,8 @@
   });
 
   // ---- Settings ---------------------------------------------------------
-  function openSettings(){
-    $("input-csv-url").value = "";
-    hideMsg($("add-source-msg"));
-    renderSourceList();
-    showScreen("settings");
-  }
-  $("btn-home-settings").addEventListener("click", openSettings);
-  $("btn-stage-settings").addEventListener("click", openSettings);
-  $("btn-catselect-settings").addEventListener("click", openSettings);
-  $("btn-settings-close").addEventListener("click", function(){
-    // Recharger les données au cas où une source a changé, puis revenir aux catégories.
-    goToCategories();
-  });
-
-  function showMsg(el, text, kind){ el.textContent = text; el.className = "rv-inline-msg rv-visible rv-" + kind; }
-  function hideMsg(el){ el.className = "rv-inline-msg"; }
-
-  function tryAddUrl(url){
-    url = (url || "").trim();
-    if (!url) return;
-    if (!isHttpUrl(url)){ showMsg($("add-source-msg"), "Ça ne ressemble pas à une URL http(s) valide.", "err"); return; }
-    var sources = getSources();
-    if (sources.some(function(s){ return s.url === url; })){
-      showMsg($("add-source-msg"), "Cette source est déjà mémorisée.", "neutral"); return;
-    }
-    showMsg($("add-source-msg"), "Chargement…", "neutral");
-    fetchAndParse(url, function(err, rows){
-      if (err){ showMsg($("add-source-msg"), "Impossible de charger ce CSV. Vérifie qu'il est public et au bon format.", "err"); return; }
-      sources.push({url:url, addedAt: Date.now()});
-      saveSources(sources);
-      setCache(url, rows);
-      showMsg($("add-source-msg"), "Ajoutée : " + uniqueBy(rows,"souscategorie").length + " sous-catégorie(s), " + rows.length + " mission(s).", "ok");
-      $("input-csv-url").value = "";
-      renderSourceList();
-    });
-  }
-
-  var addInput = $("input-csv-url");
-  addInput.addEventListener("paste", function(){ setTimeout(function(){ tryAddUrl(addInput.value); }, 0); });
-  addInput.addEventListener("keydown", function(e){ if (e.key === "Enter"){ tryAddUrl(addInput.value); } });
-
-  function renderSourceList(){
-    var wrap = $("source-list");
-    wrap.innerHTML = "";
-    var sources = getSources();
-    if (sources.length === 0){
-      var p = document.createElement("p");
-      p.className = "rv-empty-sources";
-      p.textContent = "Aucune source ajoutée pour l'instant — le jeu d'exemple est utilisé.";
-      wrap.appendChild(p);
-      return;
-    }
-    sources.forEach(function(s){ wrap.appendChild(buildSourceCard(s)); });
-  }
-
-  function buildSourceCard(source){
-    var cached = getCache(source.url);
-    var rows = (cached && cached.rows) || [];
-    var subcatsHere = uniqueBy(rows, "souscategorie");
-
-    var card = document.createElement("div");
-    card.className = "rv-source-card";
-    var head = document.createElement("div");
-    head.className = "rv-source-head";
-
-    var infoWrap = document.createElement("div");
-    infoWrap.style.minWidth = "0";
-    var label = document.createElement("div");
-    label.className = "rv-source-label";
-    var domain = "";
-    try { domain = new URL(source.url).hostname; } catch(e){ domain = source.url; }
-    label.textContent = subcatsHere.length ? subcatsHere.map(function(g){return g.label;}).slice(0,2).join(", ") + (subcatsHere.length > 2 ? "…" : "") : domain;
-    var meta = document.createElement("div");
-    meta.className = "rv-source-meta";
-    meta.textContent = subcatsHere.length + " sous-catégorie(s) · " + rows.length + " mission(s) · " + domain;
-    infoWrap.appendChild(label); infoWrap.appendChild(meta);
-
-    var actions = document.createElement("div");
-    actions.className = "rv-source-actions";
-
-    var refreshBtn = document.createElement("button");
-    refreshBtn.setAttribute("aria-label", "Actualiser"); refreshBtn.title = "Actualiser";
-    refreshBtn.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M23 4v6h-6'/><path d='M1 20v-6h6'/><path d='M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15'/></svg>";
-    refreshBtn.addEventListener("click", function(){
-      meta.textContent = "Actualisation…";
-      fetchAndParse(source.url, function(err, freshRows){
-        if (!err){ setCache(source.url, freshRows); }
-        renderSourceList();
-      });
-    });
-
-    var delBtn = document.createElement("button");
-    delBtn.setAttribute("aria-label", "Supprimer"); delBtn.title = "Supprimer";
-    delBtn.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6'/></svg>";
-    delBtn.addEventListener("click", function(){
-      var list = getSources().filter(function(s){ return s.url !== source.url; });
-      saveSources(list); removeCache(source.url); renderSourceList();
-    });
-
-    actions.appendChild(refreshBtn); actions.appendChild(delBtn);
-    head.appendChild(infoWrap); head.appendChild(actions);
-    card.appendChild(head);
-
-    if (subcatsHere.length){
-      var details = document.createElement("div");
-      details.className = "rv-source-details";
-      subcatsHere.forEach(function(g){
-        var rowsForG = rows.filter(function(r){ return normalizeKey(r.souscategorie) === g.key; });
-        var line = document.createElement("div");
-        line.className = "rv-source-game-row";
-        line.innerHTML = "<span>" + escapeHtml(g.label) + "</span><span>" + rowsForG.length + " mission(s)</span>";
-        details.appendChild(line);
-      });
-      card.appendChild(details);
-      head.style.cursor = "pointer";
-      head.addEventListener("click", function(){ details.classList.toggle("rv-open"); });
-    }
-    return card;
-  }
-
-  function escapeHtml(s){ var d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
-
-  function restoreDefaultSources(cb){
-    var sources = getSources();
-    var existingUrls = sources.map(function(s){ return s.url; });
-    var toAdd = DEFAULT_SOURCES.filter(function(u){ return existingUrls.indexOf(u) === -1; });
-    if (!toAdd.length){ if (cb) cb(false); return; }
-    var remaining = toAdd.length;
-    toAdd.forEach(function(u){
-      fetchAndParse(u, function(err, rows){
-        remaining--;
-        if (!err){
-          var list = getSources();
-          if (!list.some(function(s){ return s.url === u; })){
-            list.push({url:u, addedAt: Date.now()});
-            saveSources(list);
-            setCache(u, rows);
-          }
-        }
-        if (remaining === 0 && cb) cb(true);
-      });
-    });
-  }
-
-  $("btn-restore-defaults").addEventListener("click", function(){
-    restoreDefaultSources(function(added){
-      if (!added){
-        showMsg($("add-source-msg"), "Rien à restaurer — aucune source par défaut manquante (ou aucune définie).", "neutral");
-      }
-      renderSourceList();
-    });
-  });
 
   $("btn-home-start").addEventListener("click", bootstrap);
-
   showScreen("home");
 })();
 </script>
