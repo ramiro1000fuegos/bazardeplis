@@ -382,6 +382,7 @@
           top_avance: normalized["top_avance"] || "",
           top_retard: normalized["top_retard"] || "",
           chaos: normalized["chaos"] || "",
+          couleur: normalized["couleur"] || "",
           garantie_partie: normalized["garantie_partie"] || "",
           incompatible_con: normalized["incompatible_con"] || "",
           cartes_3: normalized["cartes_3"] || "",
@@ -562,6 +563,14 @@
   function saveMissionsEcartees(){
     try { localStorage.setItem(STORAGE_MISSIONS_ECARTEES, JSON.stringify(Array.from(missionsEcartees))); } catch(e){}
   }
+
+  function appliquerCouleurMission(couleur){
+    var c = (couleur || "").trim();
+    var couleurFinale = /^#[0-9A-Fa-f]{6}$/.test(c) ? c : "var(--spot)";
+    $("card-titre").style.color = couleurFinale;
+    $("card-cartes").style.background = couleurFinale;
+    $("btn-next-manche").style.background = couleurFinale;
+  }
   
   function afficherMission(mission){
     $("stage-idle").style.display = "none";
@@ -570,6 +579,7 @@
     $("card-categorie").textContent = mission.categorie;
     $("card-titre").textContent = mission.titre;
     $("card-texte").innerHTML = sanitizeCardText(mission.texte);
+    appliquerCouleurMission(mission.couleur);
 
     var options = parseCartesOptions(mission["cartes_" + playerCount]);
     var n = options[Math.floor(Math.random() * options.length)];
@@ -588,6 +598,7 @@
     $("stage-empty").classList.add("rv-visible");
     $("spotlight").classList.remove("rv-on");
     $("btn-skip").disabled = true;
+    $("btn-next-manche").style.background = "";
   }
 
   function ajusterTailleUnique(el, tailleMax, tailleMin){
