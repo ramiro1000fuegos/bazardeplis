@@ -216,13 +216,6 @@
 </head>
 <body>
 
-  <!-- ===================== HOME ===================== -->
-  <section id="screen-home" class="rv-screen rv-active">
-    <h1 class="rv-title">Bazar de Plis</h1>
-    <p class="rv-sub"><br>Missions tirées au hasard, manche après manche.<br></p>
-    <button class="rv-btn rv-btn-primary" id="btn-home-start" style="margin-bottom:12px;">Commencer</button>
-  </section>
-
 
   <!-- ===================== PLAYERS SELECT ===================== -->
   <section id="screen-players-select" class="rv-screen">
@@ -327,6 +320,7 @@
   var missionsVues = {};                   // persisté, clé -> bool
   var playerCount = null;
   var manche = 0;
+  var dataReady = false;
 
   var $ = function(id){ return document.getElementById(id); };
   var screens = ["home","players-select","stage"];
@@ -448,25 +442,28 @@
   function bootstrap(){
     verifierExpiration7Jours();
     missionsEcartees = loadMissionsEcartees();
-    var btn = $("btn-home-start");
-    var originalText = btn.textContent;
-    btn.disabled = true;
+    var btn = $("btn-players-play");
     btn.textContent = "Chargement…";
+    updatePlayButtonState();
     fetchCsvAvecCache(function(rows){
       allRows = rows;
-      btn.disabled = false;
-      btn.textContent = originalText;
-      goToPlayers();
+      dataReady = true;
+      btn.textContent = "Commencer la partie";
+      updatePlayButtonState();
     });
   }
 
   // ---- Joueurs ----------------------------------------------------------
   function goToPlayers(){
     renderPlayersGrid();
-    $("btn-players-play").disabled = true;
+    updatePlayButtonState();
     showScreen("players-select");
   }
-
+  
+  function updatePlayButtonState(){
+    $("btn-players-play").disabled = !dataReady || playerCount === null;
+  }  
+  
   function renderPlayersGrid(){
     var wrap = $("players-grid");
     wrap.innerHTML = "";
@@ -478,7 +475,7 @@
       opt.addEventListener("click", function(){
         playerCount = n;
         renderPlayersGrid();
-        $("btn-players-play").disabled = false;
+        updatePlayButtonState();
       });
       wrap.appendChild(opt);
     });
@@ -494,6 +491,7 @@
     manche = 0;
     resetStageVisual();
     showScreen("stage");
+    tirerMissionSuivante(true);
   }
 
   function resetStageVisual(){
@@ -641,8 +639,9 @@
 
   // ---- Settings ---------------------------------------------------------
 
-  $("btn-home-start").addEventListener("click", bootstrap);
-  showScreen("home");
+  renderPlayersGrid();
+  showScreen("players-select");
+  bootstrap();
 })();
 </script>
 </body>
