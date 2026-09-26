@@ -1,393 +1,776 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"> 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>Jeu du chapeau — La boîte aux cartes</title>
+<title>Bazar de Plis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <style>
-:root{
-  --bg:#15121B;--bg-raised:#1E1A26;--spot:#E8A33D;--spot-dim:#7A5A26;
-  --text:#F4EEE3;--text-muted:#948C9E;--teal:#4E9E97;--danger:#C1595A;--line:#2C2733;
-  --font-display:"Fraunces",Georgia,serif;--font-ui:"Inter",system-ui,sans-serif;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;}
-body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-ui);overflow:hidden;height:100dvh;display:flex;flex-direction:column;}
-button{font-family:inherit;cursor:pointer;}
-h1,h2{font-family:var(--font-display);margin:0 0 8px;}
-.scr{flex:1;display:none;flex-direction:column;min-height:0;padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));}
-.scr.on{display:flex;}
-.center{align-items:center;justify-content:center;text-align:center;}
-.sub{color:var(--text-muted);font-size:16px;line-height:1.5;margin:0 0 20px;}
-.btn{border:none;border-radius:12px;padding:16px 22px;font-size:16px;font-weight:600;background:var(--spot);color:#1B140A;margin:6px 0;}
-.btn:active{transform:scale(.98);}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);}
-.btn.danger{background:var(--danger);color:#fff;}
-.btn:disabled{opacity:.4;}
-.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;}
-.chip{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:999px;padding:12px 18px;font-size:16px;font-weight:600;}
-.chip[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#0D2422;}
-.scroll{flex:1;overflow-y:auto;min-height:0;}
-.card{background:var(--bg-raised);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px;font-family:var(--font-display);font-size:17px;text-align:left;}
-.card[aria-pressed="true"]{border-color:var(--spot);background:rgba(232,163,61,.14);}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;flex-shrink:0;}
-.eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);}
-.iconbtn{background:var(--bg-raised);border:1px solid var(--line);color:var(--text-muted);width:36px;height:36px;border-radius:10px;}
-#g-team{font-size:13px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;}
-#g-time{font-family:var(--font-display);font-size:44px;font-weight:700;margin:6px 0;}
-#g-theme{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,7vw,36px);text-align:center;padding:20px 10px;}
-.stagemid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.actions{flex-shrink:0;display:flex;flex-direction:column;gap:10px;padding-bottom:10px;}
-.popup{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:10;padding:20px;}
-.popup.on{display:flex;}
-.popup-box{background:var(--bg-raised);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:340px;text-align:center;}
-.score-row{display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-raised);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;font-size:16px;}
+  :root{
+    --bg: #15121B;
+    --bg-raised: #1E1A26;
+    --spot: #E8A33D;
+    --slate: #9AA5B4;
+    --spot-dim: #7A5A26;
+    --text: #F4EEE3;
+    --text-muted: #948C9E;
+    --teal: #4E9E97;
+    --danger: #C1595A;
+    --line: #2C2733;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-ui: "Inter", system-ui, sans-serif;
+    --rv-red: #E2707A;
+    --rv-green: #7FBE8E;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-ui);
+    overflow:hidden;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--spot);
+    outline-offset:3px;
+  }
+  input{font-family:inherit;}
+
+  .rv-stage-topbar{ display:none !important; }
+  .rv-mission-categorie{ display:none !important; }
+  
+  .rv-screen{
+    flex:1;
+    display:none;
+    flex-direction:column;
+    min-height:0;
+    padding:max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  }
+  .rv-screen.rv-active{display:flex;}
+
+  .rv-titre-image{
+    display:block;
+    max-width:100%;
+    max-height:22vh;
+    width:auto;
+    margin:10px auto 60px;
+    object-fit:contain;
+  }  
+  .rv-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding-bottom:14px;
+    flex-shrink:0;
+  }
+  .rv-topbar-info{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .rv-eyebrow{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); }
+  .rv-game-name{
+    font-family:var(--font-display); font-weight:600; font-size:18px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .rv-icon-btn{
+    background:var(--bg-raised); border:1px solid var(--line); color:var(--text-muted);
+    width:38px; height:38px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:border-color .15s, color .15s;
+  }
+  .rv-icon-btn:hover{border-color:var(--spot-dim); color:var(--text);}
+  .rv-icon-btn svg{width:18px; height:18px;}
+
+  .rv-btn{
+    border:none; border-radius:12px; padding:15px 22px;
+    font-size:16px; font-weight:600; font-family:var(--font-ui);
+    height:clamp(72px, 10dvh, 100px);
+  }
+  .rv-btn-primary{ background:var(--spot); color:#1B140A; }
+  .rv-btn-primary:active{transform:scale(.98);}
+  .rv-btn-primary:disabled{opacity:.4;}
+  .rv-btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--text); }
+  .rv-btn-ghost:hover{border-color:var(--spot-dim);}
+  .rv-btn-ghost:disabled{opacity:.35;}
+  .rv-btn-text{
+    background:none; border:none; color:var(--text-muted);
+    font-size:14px; text-decoration:underline; text-underline-offset:3px; padding:6px;
+  }
+  .rv-btn-text:hover{color:var(--text);}
+  .rv-btn-reset{
+    background:transparent; border:1px solid var(--line); color:var(--text);
+    border-radius:12px; padding:13px 20px; font-size:14px; font-weight:600; width:100%;
+  }
+  .rv-btn-reset:hover{ border-color:var(--danger); color:var(--rv-red); }
+
+  h1.rv-title{ font-family:var(--font-display); font-weight:700; font-size:clamp(26px, 7vw, 34px); margin:0 0 6px; }
+  p.rv-sub{ color:var(--text-muted); font-size:clamp(16px, 5vw, 18px); line-height:1.5; margin:0 0 22px; }
+
+  #screen-home{ align-items:center; justify-content:center; text-align:center; }
+
+  .rv-list-wrap{ flex:1; display:flex; flex-direction:column; min-height:0; }
+  .rv-scroll{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:8px; }
+
+  .rv-chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .rv-chip{
+    border:1px solid var(--line); background:transparent; color:var(--text-muted);
+    border-radius:999px; padding:9px 15px; font-size:14px; font-weight:500;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .rv-chip[aria-pressed="true"]{ background:var(--teal); border-color:var(--teal); color:#0D2422; font-weight:600; }
+  .rv-util-row{ display:flex; gap:16px; margin-bottom:16px; }
+  .rv-footer-actions{ flex-shrink:0; padding-top:12px; display:flex; flex-direction:column; gap:10px; }
+  .rv-count-note{ font-size:13px; color:var(--text-muted); text-align:center; }
+
+  /* ---------- players ---------- */
+  .rv-players-grid{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:22px;
+  }
+  .rv-player-opt{
+    background:var(--bg-raised); border:1px solid var(--line); border-radius:14px;
+    padding:18px 0; text-align:center; color:var(--text);
+    font-family:var(--font-display); font-weight:700; font-size:28px;
+  }
+  .rv-player-opt span{ display:block; font-family:var(--font-ui); font-weight:500; font-size:13px; color:var(--text-muted); margin-top:4px; }
+  .rv-player-opt[aria-pressed="true"]{ background:var(--spot); border-color:var(--spot); color:#1B140A; }
+  .rv-player-opt[aria-pressed="true"] span{ color:#3A2A0E; }
+
+  /* ---------- stage ---------- */
+  #screen-stage{ padding:0; position:relative; }
+  .rv-stage-topbar{ padding:max(18px, env(safe-area-inset-top)) 18px 10px; flex-shrink:0; }
+
+  .rv-stage-content{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    min-height:0;
+    padding:14px 20px;
+  }
+  .rv-spotlight{
+    position:absolute; inset:0;
+    opacity:0; transition:opacity .5s ease; pointer-events:none;
+  }
+  .rv-spotlight.rv-on{opacity:1;}
+
+  .rv-idle-hint{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    color:var(--text-muted); text-align:center;
+  }
+  
+  .rv-card{
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    width:100%; max-width:560px; height:100%;
+    gap:14px;
+  }
+  .rv-card.rv-visible{display:flex;}
+  
+  .rv-mission-bloc{
+      display:flex; flex-direction:column; align-items:center;
+      width:100%; gap:12px;
+      border:1px solid color-mix(in srgb, var(--mission-color, var(--spot)) 45%, transparent);
+      background:color-mix(in srgb, var(--mission-color, var(--spot)) 8%, var(--bg));
+      border-radius:16px;
+      padding:16px;
+  }
+  .rv-mission-categorie{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--teal);
+    background:rgba(78,158,151,.12); border:1px solid rgba(78,158,151,.35);
+    border-radius:999px; padding:5px 14px; flex-shrink:0;
+  }
+  .rv-mission-titre{
+    font-family:var(--font-display); font-weight:700; text-align:center; color:var(--spot);
+    line-height:1.18; width:100%; overflow:hidden; flex-shrink:0;
+  }
+  .rv-mission-texte{
+      font-family:var(--font-ui); font-weight:500; text-align:center; line-height:1.42;
+      width:100%; overflow:hidden;
+  }
+  .rv-mission-texte b, .rv-mission-texte strong{font-weight:800;}
+  .rv-mission-cartes{
+    font-family:var(--font-display); font-weight:700; font-size:17px;
+    color:#1B140A; background:var(--slate);
+    border-radius:999px; padding:10px 22px; flex-shrink:0;
+  }
+  .rv-cartes-nombre{
+    font-size:1.7em;
+    font-weight:800;
+    margin-right:4px;
+  }
+
+  .rv-empty-hint{ display:none; flex-direction:column; align-items:center; gap:8px; text-align:center; }
+  .rv-empty-hint.rv-visible{display:flex;}
+
+  .rv-stage-actionbar{
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    padding:14px 18px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  }
+  .rv-btn-row{ display:flex; gap:10px; width:100%; max-width:460px; }
+  .rv-btn-row .rv-btn{ flex:1; }
+  #btn-next-manche{ flex:1.4; background:var(--slate) !important;}
+
+  /* ---------- settings ---------- */
+  .rv-inline-msg{ font-size:13px; border-radius:8px; padding:9px 12px; margin-top:10px; display:none; }
+  .rv-inline-msg.rv-visible{display:block;}
+  .rv-inline-msg.rv-ok{background:rgba(78,158,151,.12); color:var(--teal); border:1px solid rgba(78,158,151,.35);}
+  .rv-inline-msg.rv-err{background:rgba(193,89,90,.1); color:#E8A5A5; border:1px solid rgba(193,89,90,.4);}
+  .rv-inline-msg.rv-neutral{background:var(--bg-raised); color:var(--text-muted); border:1px solid var(--line);}
+
+  [hidden]{display:none !important;}
+
+  @media (prefers-reduced-motion: reduce){
+    .rv-spotlight{transition:none;}
+  }
 </style>
 </head>
 <body>
 
-<div id="s-home" class="scr center">
-  <h1>Jeu du chapeau</h1>
-  <p class="sub">Devinez un maximum de thèmes en 3 manches.</p>
-  <button class="btn" id="b-home-new">Nouvelle partie</button>
-  <button class="btn ghost" id="b-home-resume" style="display:none">Reprendre la partie</button>
-  <button class="btn ghost" id="b-home-rules">Règles du jeu</button>
-</div>
 
-<div id="s-config" class="scr center">
-  <h2>Nombre de participants</h2>
-  <div class="row" id="config-nb"></div>
-</div>
+  <!-- ===================== PLAYERS SELECT ===================== -->
+  <section id="screen-players-select" class="rv-screen">
+    <div class="rv-list-wrap">
+      <img src="Bazar_Plis_Lite.png" alt="Bazar de Plis" class="rv-titre-image">
+      <!--<h1 class="rv-title" style="text-align:center;">Bazar de Plis</h1>-->
+      <p class="rv-sub" style="text-align:center;">Combien de joueurs ?</p>
+      <div class="rv-scroll">
+        <div class="rv-players-grid" id="players-grid"></div>
+      </div>
+      <div class="rv-footer-actions">
+        <a class="rv-btn-reset" id="btn-regles" href="https://docs.google.com/document/d/1kye2mTZ__FhK8NN0V3IhhFVqy8vcjaCx-MYYKIAw90Y/edit?usp=sharing&pli=1&authuser=0" target="_blank" rel="noopener" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">Règles du jeu</a>
+        <span class="rv-count-note" id="loading-note" style="display:none;">Chargement des règles…</span>
+        <div class="rv-btn-row">
+          <button class="rv-btn rv-btn-primary" id="btn-players-play" disabled>Jouer<br>(1 règle)</button>
+          <button class="rv-btn rv-btn-primary" id="btn-players-play-variante" disabled>Jouer<br>(2 règles)</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<div id="s-teams" class="scr center">
-  <h2>Formation des équipes</h2>
-  <p class="sub" id="teams-desc"></p>
-  <button class="btn" id="b-teams-next">Continuer</button>
-</div>
+  <!-- ===================== STAGE ===================== -->
+  <section id="screen-stage" class="rv-screen">
+    <div class="rv-stage-topbar rv-topbar">
+      <div class="rv-topbar-info">
+        <span class="rv-eyebrow">Manche</span>
+        <span class="rv-game-name" id="manche-number">—</span>
+      </div>
+    </div>
 
-<div id="s-blank" class="scr center">
-  <p class="sub" id="blank-label">Passez le téléphone au joueur suivant.</p>
-  <button class="btn" id="b-blank-next">Joueur suivant</button>
-</div>
+    <div class="rv-stage-content">
+      <div class="rv-spotlight" id="spotlight" aria-hidden="true"></div>
 
-<div id="s-pick" class="scr">
-  <div class="topbar"><span class="eyebrow" id="pick-who"></span></div>
-  <p class="sub">Sélectionnez 2 thèmes à écarter de la partie.</p>
-  <div class="scroll" id="pick-list"></div>
-  <button class="btn" id="b-pick-done" disabled>Retirer les thèmes sélectionnés</button>
-</div>
+      <div class="rv-idle-hint" id="stage-idle">
+        <span>Appuie sur « Nouvelle manche » pour commencer</span>
+      </div>
 
-<div id="s-premanche" class="scr center">
-  <h2 id="pm-title"></h2>
-  <p class="sub" id="pm-desc"></p>
-  <div class="row" id="pm-duration"></div>
-  <button class="btn" id="b-pm-start">Commencer la manche</button>
-  <button class="btn ghost" id="b-pm-rules">Règles du jeu</button>
-</div>
+      <div class="rv-card" id="stage-card">
+        <span class="rv-mission-cartes" id="card-cartes"></span>
+        <div class="rv-mission-bloc" id="mission-bloc-1">
+          <div class="rv-mission-titre" id="card-titre"></div>
+          <div class="rv-mission-texte" id="card-texte"></div>
+        </div>
+        <div class="rv-mission-bloc" id="mission-bloc-2" hidden>
+          <div class="rv-mission-titre" id="card-titre-2"></div>
+          <div class="rv-mission-texte" id="card-texte-2"></div>
+        </div>
+      </div>
 
-<div id="s-game" class="scr">
-  <div class="topbar">
-    <span class="eyebrow" id="g-manche"></span>
-    <button class="iconbtn" id="b-game-quit">✕</button>
-  </div>
-  <div class="stagemid">
-    <div id="g-team" style="padding:8px 16px;border-radius:10px;font-weight:700;"></div>
-    <div id="g-time">--</div>
-    <div id="g-progress" class="sub" style="margin:0 0 4px"></div>
-    <div id="g-theme">Prêt ?</div>
-  </div>
-  <div class="actions" id="g-actions">
-    <button class="btn" id="b-g-next">Joueur suivant</button>
-  </div>
-</div>
+      <div class="rv-empty-hint" id="stage-empty">
+        <span class="rv-sub" style="margin:0;">Plus aucune règlle extra disponible pour ce nombre de joueurs.</span>
+      </div>
+    </div>
 
-<div id="s-teamchoice" class="scr center">
-  <h2>Formation des équipes</h2>
-  <p class="sub">Deux configurations sont possibles, choisissez-en une.</p>
-  <div class="row" id="teamchoice-opts" style="flex-direction:column"></div>
-</div>
+    <div class="rv-stage-actionbar">
+      <div class="rv-btn-row">
+        <button class="rv-btn rv-btn-ghost" id="btn-skip" disabled>Sauter</button>
+        <button class="rv-btn rv-btn-primary" id="btn-next-manche">Nouvelle manche</button>
+      </div>
+      <button class="rv-btn-reset" id="btn-new-game">Nouvelle partie</button>
+    </div>
+  </section>
 
-<div id="s-endmanche" class="scr center">
-  <h2>Fin de manche</h2>
-  <div class="scroll" id="em-scores" style="width:100%;max-width:360px"></div>
-  <button class="btn" id="b-em-next" style="margin-top:16px">OK</button>
-  <button class="btn ghost" id="b-em-rules">Règles du jeu</button>
-</div>
+  <script data-goatcounter="https://bazardeplis.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  
+  <script>
 
-<div id="s-end" class="scr center">
-  <h2>Fin de partie</h2>
-  <div class="scroll" id="end-scores" style="width:100%;max-width:360px"></div>
-  <h2 style="margin-top:18px;font-size:18px" id="end-themes-title">Les thèmes</h2>
-  <div class="scroll" id="end-themes" style="width:100%;max-width:360px"></div>
-  <button class="btn" id="b-end-new" style="margin-top:16px">OK</button>
-</div>
-
-<div class="popup" id="p-error"><div class="popup-box">
-  <p>Confirmer la faute ? Le tour de l'équipe se termine.</p>
-  <button class="btn danger" id="b-err-yes">Confirmer</button>
-  <button class="btn ghost" id="b-err-no">Annuler</button>
-</div></div>
-
-<div class="popup" id="p-quit"><div class="popup-box">
-  <p>Quitter la partie ? Vous pourrez la reprendre plus tard.</p>
-  <button class="btn danger" id="b-quit-yes">Quitter</button>
-  <button class="btn ghost" id="b-quit-no">Annuler</button>
-</div></div>
-
-<script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(err => {
+        console.warn('Service Worker non enregistré :', err);
+      });
+    }    
+  
 (function(){
-"use strict";
-var RULES_URL = "https://example.com/regles-times-up"; // TODO: URL réelle des règles
+  "use strict";
 
-// 594 thèmes fournis par l'utilisateur (personnages, films, séries, marques, lieux, chansons...)
-var THEME_POOL = ["Michael Jackson", "Napoléon Bonaparte", "Albert Einstein", "Zinédine Zidane", "Cristiano Ronaldo", "Édith Piaf", "Charles Aznavour", "Lionel Messi", "Claude François", "Johnny Hallyday", "Dalida", "Elvis Presley", "Adolf Hitler", "Serge Gainsbourg", "Charles de Gaulle", "Jacques Brel", "Georges Brassens", "Jean-Jacques Goldman", "Louis de Funès", "Madonna", "Barack Obama", "Marilyn Monroe", "Nelson Mandela", "Leonardo DiCaprio", "Beyoncé", "Brad Pitt", "Tom Cruise", "Arnold Schwarzenegger", "Céline Dion", "Omar Sy", "Bob Marley", "Jackie Chan", "Bruce Lee", "Cléopâtre", "Will Smith", "Lady Gaga", "Rihanna", "Eminem", "Gandhi", "Donald Trump", "Astérix", "Kylian Mbappé", "Pelé", "Obélix", "Diego Maradona", "Tintin", "Michel Sardou", "Lucky Luke", "Mylène Farmer", "Gaston Lagaffe", "Sophie Marceau", "Titeuf", "Jean Reno", "Le Petit Nicolas", "Jean Dujardin", "Les Schtroumpfs", "Dany Boon", "Marsupilami", "François Mitterrand", "Spirou", "Louis XIV", "Le Chat", "Marie-Antoinette", "Les Dalton", "Jeanne d'Arc", "Mickey", "Pablo Picasso", "Donald", "Victor Hugo", "Picsou", "Jules César", "Winnie l'Ourson", "Peter Pan", "Alice", "Winston Churchill", "Elizabeth II", "Pinocchio", "Cendrillon", "Steve Jobs", "Blanche-Neige", "Bill Gates", "Barbie", "Elon Musk", "Vladimir Poutine", "Superman", "Batman", "Martin Luther King", "Spider-Man", "Marie Curie", "Hulk", "Louis Pasteur", "Wonder Woman", "Léonard de Vinci", "James Bond", "Mozart", "Indiana Jones", "Beethoven", "Rocky", "William Shakespeare", "Rambo", "Molière", "Dark Vador", "Alexandre Dumas", "Jules Verne", "Yoda", "Antoine de Saint-Exupéry", "Harry Potter", "Albert Camus", "Sherlock Holmes", "Dracula", "Salvador Dalí", "Claude Monet", "Frankenstein", "Gustave Eiffel", "Zorro", "Frida Kahlo", "Tarzan", "Coco Chanel", "King Kong", "David Beckham", "Mr Bean", "Michael Jordan", "Homer Simpson", "Bart Simpson", "Muhammad Ali", "Mike Tyson", "Scooby-Doo", "Michael Schumacher", "Mario", "Rafael Nadal", "Luigi", "Novak Djokovic", "Sonic", "Tiger Woods", "Pikachu", "Serena Williams", "Lewis Hamilton", "Lara Croft", "Alain Prost", "Link", "Donkey Kong", "Thierry Henry", "Karim Benzema", "Kirby", "Antoine Griezmann", "Teddy Riner", "Son Goku", "Thomas Pesquet", "Naruto", "Didier Deschamps", "Luffy", "Michel Platini", "Alain Delon", "Nicky Larson", "Catherine Deneuve", "Père Noël", "Gérard Depardieu", "Père Fouettard", "Marion Cotillard", "Petit Chaperon rouge", "Isabelle Adjani", "Robin des Bois", "Don Quichotte", "Cyrano de Bergerac", "Penélope Cruz", "Don Juan", "Antonio Banderas", "Carmen", "Javier Bardem", "Salma Hayek", "Perceval", "Monica Bellucci", "Karadoc", "Sophia Loren", "Roi Arthur", "Robert De Niro", "Merlin le Magicien", "Al Pacino", "Jean-Claude Convenant", "Hervé Dumont", "Morgan Freeman", "Denzel Washington", "La Grande Vadrouille", "Bienvenue chez les Ch'tis", "Tom Hanks", "Intouchables", "Robin Williams", "Astérix et Obélix : Mission Cléopâtre", "Sylvester Stallone", "Jim Carrey", "Les Visiteurs", "Jennifer Lopez", "Le Dîner de cons", "Angelina Jolie", "Les Bronzés", "Julia Roberts", "Le Père Noël est une ordure", "Meryl Streep", "Les Tontons flingueurs", "Scarlett Johansson", "Le Gendarme de Saint-Tropez", "Natalie Portman", "Emma Watson", "Le Fabuleux Destin d'Amélie Poulain", "Sean Connery", "La Cité de la peur", "Charlie Chaplin", "OSS 117", "Anthony Hopkins", "Les Choristes", "Daniel Craig", "Titanic", "Star Wars", "Hugh Grant", "Steven Spielberg", "George Lucas", "Jurassic Park", "James Cameron", "Le Roi Lion", "Quentin Tarantino", "Retour vers le futur", "Alfred Hitchcock", "Christopher Nolan", "Walt Disney", "Terminator", "Stephen King", "Matrix", "Agatha Christie", "Pirates des Caraïbes", "J. K. Rowling", "Ernest Hemingway", "Mission: Impossible", "Avengers", "Edgar Allan Poe", "Charles Darwin", "Nikola Tesla", "Forrest Gump", "Isaac Newton", "Thomas Edison", "Maman, j'ai raté l'avion", "E.T.", "Alexander Graham Bell", "Grease", "Stephen Hawking", "Dirty Dancing", "Sigmund Freud", "Le Parrain", "Karl Marx", "Friends", "Friedrich Nietzsche", "Game of Thrones", "Jésus", "Breaking Bad", "Bouddha", "Mahomet", "The Walking Dead", "La Casa de Papel", "Galilée", "Christophe Colomb", "Peaky Blinders", "Gengis Khan", "Stranger Things", "Abraham Lincoln", "The Office", "George Washington", "Squid Game", "Joseph Staline", "The Crown", "Lénine", "Plus belle la vie", "Mao Zedong", "Un gars, une fille", "Kaamelott", "Benito Mussolini", "Caméra Café", "Che Guevara", "Bref.", "Fidel Castro", "Les Deschiens", "Margaret Thatcher", "Angela Merkel", "Scènes de ménages", "Fais pas ci, fais pas ça", "Joe Biden", "Dix pour cent", "Emmanuel Macron", "HPI", "Nicolas Sarkozy", "Capitaine Marleau", "Jacques Chirac", "Le Petit Prince", "François Hollande", "Les Misérables", "Marine Le Pen", "Le Comte de Monte-Cristo", "Jean-Luc Mélenchon", "Volodymyr Zelensky", "Les Trois Mousquetaires", "Xi Jinping", "L'Étranger", "Kim Jong-un", "Madame Bovary", "Benyamin Netanyahou", "Germinal", "Lula da Silva", "Narendra Modi", "Dalai Lama", "Vingt mille lieues sous les mers", "Mère Teresa", "Le Seigneur des anneaux", "Malala Yousafzai", "Greta Thunberg", "Millénium", "Anne Frank", "Cinquante nuances de Grey", "Indira Gandhi", "David Bowie", "Frank Sinatra", "Bob Dylan", "Bruce Springsteen", "Boule et Bill", "Elton John", "Paul McCartney", "Freddie Mercury", "Amy Winehouse", "Taylor Swift", "Adele", "Largo Winch", "Britney Spears", "Ed Sheeran", "Dua Lipa", "Dragon Ball", "Harry Styles", "One Piece", "Shakira", "Stromae", "David Guetta", "Les Chevaliers du Zodiaque", "Francis Cabrel", "Olive et Tom", "Renaud", "Sailor Moon", "Patrick Bruel", "Soprano", "Détective Conan", "Gims", "Aya Nakamura", "Angèle", "Tetris", "Pokémon", "Julio Iglesias", "Minecraft", "Enrique Iglesias", "GTA", "Andrea Bocelli", "Fortnite", "Luciano Pavarotti", "Mario Kart", "The Sims", "Wii Sports", "Pac-Man", "Hayao Miyazaki", "Zelda", "Animal Crossing", "Call of Duty", "Candy Crush", "Just Dance", "Rayman", "Les Lapins Crétins", "Mohamed Salah", "Dofus", "Adibou", "La Vie en rose", "Ronaldinho", "La Bohème", "Ne me quitte pas", "Neymar", "Les Copains d'abord", "Je t'aime... moi non plus", "Iker Casillas", "Comme d'habitude", "Sergio Ramos", "Alexandrie Alexandra", "Fernando Alonso", "Les Lacs du Connemara", "Valentino Rossi", "Envole-moi", "Quand la musique est bonne", "Zlatan Ibrahimović", "Je te donne", "Mistral gagnant", "L'Aventurier", "Bernard Arnault", "Voyage voyage", "Nuit de folie", "Giorgio Armani", "Je danse le mia", "Gianni Versace", "La Tribu de Dana", "Karl Lagerfeld", "Désenchantée", "Christian Louboutin", "Pour que tu m'aimes encore", "Henry Ford", "Papaoutai", "Andy Warhol", "Bohemian Rhapsody", "We Will Rock You", "Roger Federer", "We Are the Champions", "Imagine", "Simone Biles", "Yesterday", "Michael Phelps", "Billie Jean", "Magnus Carlsen", "Thriller", "Dancing Queen", "I Will Survive", "Stayin' Alive", "My Heart Will Go On", "Wannabe", "Gangnam Style", "Despacito", "Get Lucky", "Hakuna Matata", "Libérée, délivrée", "Ce rêve bleu", "Ghostbusters", "Eye of the Tiger", "Indochine", "IAM", "MC Solaar", "Daft Punk", "The Beatles", "Queen", "ABBA", "The Rolling Stones", "AC/DC", "Nirvana", "U2", "Coldplay", "Fort Boyard", "Koh-Lanta", "Intervilles", "C'est pas sorcier", "Questions pour un champion", "Des chiffres et des lettres", "Le Juste Prix", "Qui veut gagner des millions ?", "La Roue de la fortune", "Les Z'amours", "Star Academy", "Nouvelle Star", "The Voice", "Top Chef", "L'Amour est dans le pré", "Pékin Express", "Club Dorothée", "Les Minikeums", "Amazon", "Apple", "Google", "YouTube", "Netflix", "Instagram", "Facebook", "LEGO", "IKEA", "Decathlon", "Nike", "McDonald's", "Carrefour", "Leclerc", "Lidl", "Auchan", "Leroy Merlin", "FNAC", "SNCF", "La Poste", "Orange", "Free", "Leboncoin", "Doctolib", "Gmail", "Google Maps", "CAF", "Ameli", "Crédit Agricole", "Banque Postale", "Pepsi", "Outlook", "Hotmail", "Playmobil", "Rubik's Cube", "Tamagotchi", "Polaroid", "Walkman", "iPhone", "Game Boy", "PlayStation", "Nintendo Switch", "TGV", "2 CV", "Vespa", "Minitel", "Post-it", "Kleenex", "Nutella", "Coca-Cola", "Kinder", "Oreo", "M&M's", "Haribo", "Carambar", "Malabar", "Babybel", "Kiri", "La Vache qui rit", "BN", "Danette", "Chocapic", "Pringles", "Orangina", "Ricard", "Big Mac", "PSG", "Ligue 1", "Tour Eiffel", "Louvre", "Château de Versailles", "Notre-Dame de Paris", "Arc de Triomphe", "Mont-Saint-Michel", "Champs-Élysées", "Sacré-Cœur", "Montmartre", "Disneyland Paris", "Statue de la Liberté", "Big Ben", "Colisée", "Tour de Pise", "Taj Mahal", "Grande Muraille de Chine", "Pyramides de Gizeh", "Mont Fuji", "Poudlard", "Mordor", "Gotham City", "Étoile de la Mort", "Mai 68", "Covid-19", "#MeToo", "Black Friday", "Halloween", "Eurovision", "Intelligence artificielle", "QR code", "Internet", "Wikipédia", "Noël", "Saint-Valentin", "Poisson d'avril", "Le Livre dont vous êtes le héros", "Tour de France", "Coupe du monde", "Roland-Garros", "Jeux olympiques", "Jeux paralympiques", "24 Heures du Mans", "Alexandre le Grand", "Andrés Iniesta", "Archimède", "Aristote", "Audrey Hepburn", "Bourvil", "Brigitte Bardot", "Frédéric Chopin", "Jean Gabin", "Jean-Paul Belmondo", "Johann Sebastian Bach", "Lady Diana", "Mariah Carey", "Nadia Comăneci", "Platon", "Socrate", "Whitney Houston", "Aretha Franklin", "Charlemagne", "Louis XVI", "Jack Nicholson", "Windows", "Usain Bolt", "Antoine Dupont"];
+  // ---- Config ---------------------------------------------------------
+ 
+  var CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQJwGVXOGrH4pRy0emVTaOQC7S5xVqt93KBRrij63FWayGgjv3WLZaVNTXpxVra6UbLQRqXqby_RrYd/pub?gid=0&single=true&output=csv"
+  var STORAGE_CSV_CACHE = "bazar.csv.cache";
+  var STORAGE_DERNIERE_OUVERTURE = "bazar.derniereOuverture";
+  var STORAGE_MISSIONS_ECARTEES = "bazar.missions.ecartees";  
+  
+  var STORAGE_SOUSCATS_UTILISEES = "bazar.souscategories.utilisees";
+  var STORAGE_MISSIONS_VUES = "bazar.missions.vues";
 
-function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=(Math.random()*(i+1))|0;var t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function $(id){return document.getElementById(id);}
-function show(id){document.querySelectorAll(".scr").forEach(function(s){s.classList.remove("on");});$(id).classList.add("on");}
+  var PLAYER_COUNTS = [3,4,5,6,7,8];
 
-// ---------- Équipes : noms & couleurs (MVP, attribution fixe — voir annexe pour la mécanique cible) ----------
-var TEAM_NAMES = [
-  {name:"Kiwis", emoji:"🥝", color:"#FFD166"},
-  {name:"Pandas", emoji:"🐼", color:"#4FD9E8"},
-  {name:"Éclairs", emoji:"⚡", color:"#B79CFF"},
-  {name:"Dragons", emoji:"🐲", color:"#7FE8C0"},
-  {name:"Cactus", emoji:"🌵", color:"#FF6F59"}
-];
-// TODO (post-MVP) : attribution dynamique par catégorie avec élimination (annexe) — non implémentée, ordre fixe ci-dessus.
+  var SAMPLE_ROWS = [
+    {souscategorie:"Chasse au trésor", titre:"Le plus petit atout", texte:"Annonce le nombre exact de tes petits atouts.<br>Tu marques si tu tombes juste.", categorie:"Pili", cartes_3:"2", cartes_4:"2/3", cartes_5:"3", cartes_6:"3", cartes_7:"4", cartes_8:"4", top_rattrapage:""},
+    {souscategorie:"Chasse au trésor", titre:"Carte fantôme", texte:"Choisis en secret une carte de ta main.<br>Elle ne doit jamais remporter un pli.", categorie:"New", cartes_3:"2", cartes_4:"2", cartes_5:"3", cartes_6:"3", cartes_7:"3", cartes_8:"4", top_rattrapage:"3"},
+    {souscategorie:"Duel", titre:"Face à face", texte:"Désigne un adversaire en début de manche.<br>Fais plus de plis que lui.", categorie:"Pili", cartes_3:"1", cartes_4:"2", cartes_5:"2", cartes_6:"2", cartes_7:"3", cartes_8:"3", top_rattrapage:""}
+  ];
 
-// N -> options de répartition en équipes (2 options seulement pour 6 et 10)
-var TEAM_CONFIGS = {
-  4:[[2,2]], 5:[[2,3]], 6:[[3,3],[2,2,2]], 7:[[2,2,3]], 8:[[2,2,2,2]],
-  9:[[3,3,3]], 10:[[2,2,2,2,2],[2,2,3,3]], 11:[[2,3,3,3]], 12:[[3,3,3,3]]
-};
-
-var G = null; // état de la partie
-// Persistance : code conservé (save/loadSaved/clearSaved) mais volontairement non appelé en MVP.
-var SAVE_KEY = "tu52_game_v1";
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(G)); }catch(e){} }
-function loadSaved(){ try{ var s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
-function clearSaved(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
-
-function tone(freq, dur, type){
-  try{
-    var ctx=new (window.AudioContext||window.webkitAudioContext)();
-    var o=ctx.createOscillator(),g=ctx.createGain();
-    o.type = type||"sine"; o.frequency.value=freq; o.connect(g); g.connect(ctx.destination);
-    g.gain.setValueAtTime(.2,ctx.currentTime);
-    o.start(); o.stop(ctx.currentTime+dur);
-  }catch(e){}
-}
-function soundOk(){ tone(1046,.15); setTimeout(function(){tone(1568,.2);},110); } // "OK" : deux notes montantes, brèves
-function soundErreurPasse(){ tone(300,.35,"sawtooth"); } // "Erreur / Passe" : buzz grave et bref
-function soundFinDeTour(){ tone(520,.5); setTimeout(function(){tone(260,.6);},250); } // "Fin de tour" : deux notes longues et descendantes
-
-// ---------- Accueil ----------
-// Le bouton "Reprendre la partie" reste caché en MVP (persistance non activée).
-$("b-home-rules").addEventListener("click", function(){ window.open(RULES_URL,"_blank"); });
-$("b-home-new").addEventListener("click", function(){ startConfig(); });
-
-// ---------- Config participants & équipes ----------
-function startConfig(){
-  var wrap = $("config-nb"); wrap.innerHTML="";
-  for (var n=4;n<=12;n++){
-    (function(n){
-      var b=document.createElement("button"); b.className="chip"; b.textContent=n;
-      b.addEventListener("click", function(){ onParticipants(n); });
-      wrap.appendChild(b);
-    })(n);
+  // ---- DOMPurify config ---------------------------------------------------
+  DOMPurify.addHook("uponSanitizeAttribute", function(node, data){
+    if (data.attrName === "color"){
+      var v = (data.attrValue || "").toLowerCase().trim();
+      if (v !== "rouge" && v !== "vert"){ data.keepAttr = false; }
+    }
+  });
+  var PURIFY_CONFIG = { ALLOWED_TAGS: ["br","b","strong","span"], ALLOWED_ATTR: ["color"] };
+  function sanitizeCardText(raw, compact){
+    var clean = DOMPurify.sanitize(raw || "", PURIFY_CONFIG);
+    console.log("compact:", compact, "avant:", clean);
+    if (compact){
+      clean = clean.replace(/<br\s*\/?>/gi, " ");
+    }
+    console.log("après:", clean);
+    clean = clean
+      .replace(/<span color="rouge">/g, '<span style="color:var(--rv-red)">')
+      .replace(/<span color="vert">/g, '<span style="color:var(--rv-green)">')
+      .replace(/♥/g, '<span style="color:var(--rv-red)">♥</span>')
+      .replace(/♦/g, '<span style="color:var(--rv-red)">♦</span>');
+  
+    return '<div style="width:100%;">' + clean + '</div>';
   }
-  show("s-config");
-}
-function onParticipants(n){
-  G = { participants:n, manche_courante:1, equipe_courante:0, duree_decompte:30 };
-  var opts = TEAM_CONFIGS[n];
-  if (opts.length > 1){
-    var wrap = $("teamchoice-opts"); wrap.innerHTML="";
-    opts.forEach(function(sizes){
-      var b=document.createElement("button"); b.className="chip";
-      b.textContent = sizes.length+" équipes ("+sizes.join("+")+")";
-      b.addEventListener("click", function(){ chooseTeams(sizes); });
-      wrap.appendChild(b);
+
+  // ---- State ------------------------------------------------------------
+  var allRows = [];
+  var subcategories = [];
+  var categoriesVues = new Set();   // en mémoire seulement, jamais persisté, remis à zéro à chaque nouvelle partie
+  var missionsEcartees = new Set(); // persisté, vide pour l'instant — pas d'UI encore pour l'alimenter
+  var souscategoriesUtilisees = new Set(); // persisté, reset seulement à cycle complet
+  var missionsVues = {};                   // persisté, clé -> bool
+  var playerCount = null;
+  var manche = 0;
+  var dataReady = false;
+  var varianteDeuxRegles = false;      // ← ajout : mode 2 missions actif ou non
+  var missionCourante2 = null;         // ← ajout : 2e mission du couple affiché, ou null
+
+  var $ = function(id){ return document.getElementById(id); };
+  var screens = ["players-select","stage"];
+  function showScreen(name){
+    screens.forEach(function(s){ $("screen-"+s).classList.toggle("rv-active", s === name); });
+  }
+
+  function normalizeKey(k){
+    return (k||"").toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  }
+  function uniqueBy(rows, field){
+    var map = {}, order = [];
+    rows.forEach(function(r){
+      var k = normalizeKey(r[field]);
+      if (k && !(k in map)){ map[k] = r[field]; order.push(k); }
     });
-    show("s-teamchoice");
-  } else {
-    chooseTeams(opts[0]);
+    return order.map(function(k){ return {key:k, label:map[k]}; });
   }
-}
-function chooseTeams(sizes){
-  G.teams = sizes.map(function(sz,i){
-    var n = TEAM_NAMES[i];
-    return {numero:i+1, taille:sz, nom:n.name, emoji:n.emoji, couleur:n.color, score_cumule:0, scores_manches:[0,0,0]};
-  });
-  $("teams-desc").textContent = sizes.length+" équipes : "+sizes.map(function(s){return s+" pers.";}).join(", ")+".";
-  show("s-teams");
-}
-$("b-teams-next").addEventListener("click", function(){
-  // MVP = mode D : tirage direct de 40 thèmes, sans aperçu ni filtrage (modes A/B/C/E gardés plus bas mais non appelés)
-  var pool = shuffle(THEME_POOL.map(function(t,i){return {id:i,txt:t};}));
-  G.cartes_en_jeu = pool.slice(0, Math.min(40, pool.length)).map(function(c){ return {id:c.id, txt:c.txt, statut:"disponible"}; });
-  startManche();
-});
+  function missionKey(r){ return r.id ? normalizeKey(r.id) : (normalizeKey(r.souscategorie) + "|" + normalizeKey(r.titre)); }
+  function parseIncompatibles(val){
+    return (val||"").toString().split("/").map(function(v){ return normalizeKey(v); }).filter(Boolean);
+  }
+  function isTruthy(v){
+    v = (v||"").toString().trim().toLowerCase();
+    return v === "oui" || v === "yes" || v === "true" || v === "1" || v === "x";
+  }
+  function parseCartesOptions(val){
+    return (val||"").toString().split("/")
+      .map(function(v){ return parseInt(v.trim(), 10); })
+      .filter(function(n){ return !isNaN(n) && n > 0; });
+  }
 
-// ---------- Setup joueurs (modes A/B/C/E — code conservé, non appelé en MVP qui utilise le mode D) ----------
-function nextSetupPlayer(){ /* non utilisé en MVP */ }
-function drawPlayerSlice(count){ return []; /* non utilisé en MVP */ }
+  // ---- Sources registry (localStorage) -----------------------------------
 
-// ---------- Manches ----------
-var MANCHE_DESC = {
-  1: "Décrivez librement le thème (interdit : dire plus d'un mot, épeler).",
-  2: "Un seul mot autorisé (interdits : gestes, bruitages).",
-  3: "Mimez le thème, sans parler ni fredonner."
-};
-function startManche(){
-  G.equipe_courante = 0;
-  G.cartes_en_jeu.forEach(function(c){ c.statut = "disponible"; }); // en début de manche, tous les thèmes redeviennent disponibles
-  $("pm-title").textContent = "Manche "+G.manche_courante+" / 3";
-  $("pm-desc").textContent = MANCHE_DESC[G.manche_courante];
-  var dwrap = $("pm-duration"); dwrap.innerHTML="";
-  [10,30,45,60].forEach(function(d){
-    var b=document.createElement("button"); b.className="chip"; b.textContent=d+"s";
-    if(d===G.duree_decompte) b.setAttribute("aria-pressed","true");
-    b.addEventListener("click", function(){
-      dwrap.querySelectorAll(".chip").forEach(function(c){c.removeAttribute("aria-pressed");});
-      b.setAttribute("aria-pressed","true"); G.duree_decompte=d;
+  function verifierExpiration7Jours(){
+    var SEPT_JOURS_MS = 7 * 24 * 60 * 60 * 1000;
+    var derniere = parseInt(localStorage.getItem(STORAGE_DERNIERE_OUVERTURE), 10);
+    if (isNaN(derniere) || (Date.now() - derniere) > SEPT_JOURS_MS){
+      localStorage.removeItem(STORAGE_SOUSCATS_UTILISEES);
+      localStorage.removeItem(STORAGE_MISSIONS_VUES);
+    }
+    localStorage.setItem(STORAGE_DERNIERE_OUVERTURE, Date.now());
+  }  
+  
+  function rowsFromParsed(data){
+    var out = [];
+    data.forEach(function(row){
+      var normalized = {};
+      Object.keys(row || {}).forEach(function(k){ normalized[normalizeKey(k)] = (row[k]||"").toString().trim(); });
+      var souscategorie = normalized["souscategorie"] || normalized["sous categorie"] || "";
+      var titre = normalized["titre"] || "";
+      var texte = normalized["texte"] || "";
+      if (souscategorie && titre && texte){
+        out.push({
+          id: normalized["id"] || "",
+          souscategorie: souscategorie,
+          categorie: normalized["categorie"] || "",
+          titre: titre,
+          texte: texte,
+          image: normalized["image"] || "",
+          top_rattrapage: normalized["top_rattrapage"] || "",
+          couleur: normalized["couleur"] || "",
+          incompatibilites: normalized["incompatibilites"] || "",   
+          cartes_3: normalized["cartes_3"] || "",
+          cartes_4: normalized["cartes_4"] || "",
+          cartes_5: normalized["cartes_5"] || "",
+          cartes_6: normalized["cartes_6"] || "",
+          cartes_7: normalized["cartes_7"] || "",
+          cartes_8: normalized["cartes_8"] || ""
+        });
+      }
     });
-    dwrap.appendChild(b);
-  });
-  show("s-premanche");
-}
-$("b-pm-rules").addEventListener("click", function(){ window.open(RULES_URL,"_blank"); });
-$("b-pm-start").addEventListener("click", function(){ setupTurn(); });
-
-// ---------- Tour d'équipe ----------
-var timerId=null, timeLeft=0;
-
-function setupTurn(){
-  var team = G.teams[G.equipe_courante];
-  $("g-manche").textContent = "Manche "+G.manche_courante;
-  $("g-team").textContent = team.emoji+" "+team.nom;
-  $("g-team").style.background = team.couleur; $("g-team").style.color = "#000";
-  $("g-time").style.color = team.couleur;
-  $("g-time").textContent = "--";
-  $("g-progress").textContent = "";
-  $("g-theme").textContent = "Prêt ?";
-  $("g-actions").innerHTML = '<button class="btn" id="b-g-next">Joueur suivant</button>';
-  $("b-g-next").addEventListener("click", startTurn);
-  show("s-game");
-}
-function startTurn(){
-  timeLeft = G.duree_decompte;
-  // les thèmes "sauté" redeviennent disponibles (seuls les "deviné" restent indisponibles), puis on tire l'ordre de ce tour
-  G.cartes_en_jeu.forEach(function(c){ if(c.statut==="saute") c.statut="disponible"; });
-  G._turnDeck = shuffle(G.cartes_en_jeu.filter(function(c){ return c.statut==="disponible"; }));
-  G._turnPos = 0; G._turnShown = 0;
-  renderActions();
-  if (showNextTheme()) runTimer();
-}
-function runTimer(){
-  clearInterval(timerId);
-  $("g-time").textContent = timeLeft;
-  timerId = setInterval(function(){
-    timeLeft--;
-    $("g-time").textContent = timeLeft;
-    if (timeLeft<=0){ clearInterval(timerId); endTurn(); }
-  },1000);
-}
-function pauseTimer(){ clearInterval(timerId); }
-function resumeTimer(){ runTimer(); }
-
-function showNextTheme(){
-  if (G._turnPos >= G._turnDeck.length){ endTurn(); return false; }
-  G._current = G._turnDeck[G._turnPos];
-  G._turnPos++; G._turnShown++;
-  $("g-progress").textContent = "Thème "+G._turnShown+" / "+G._turnDeck.length;
-  $("g-theme").textContent = G._current.txt;
-  return true;
-}
-function renderActions(){
-  var html = '<button class="btn" id="b-guess">Thème deviné</button>';
-  if (G.manche_courante >= 2){
-    html += '<button class="btn ghost" id="b-skip">Erreur / Passer thème</button>';
+    return out;
   }
-  html += '<button class="btn danger" id="b-faute">Faute</button>';
-  $("g-actions").innerHTML = html;
-  $("b-guess").addEventListener("click", function(){
-    soundOk();
-    var team = G.teams[G.equipe_courante];
-    team.scores_manches[G.manche_courante-1]++;
-    team.score_cumule++;
-    G._current.statut = "devine"; // indisponible pour toutes les équipes jusqu'à la fin de la manche
-    showNextTheme();
-  });
-  var skipBtn = $("b-skip");
-  if (skipBtn) skipBtn.addEventListener("click", function(){
-    soundErreurPasse();
-    G._current.statut = "saute"; // indisponible pour cette équipe sur ce tour seulement
-    showNextTheme();
-  });
-  $("b-faute").addEventListener("click", function(){
-    pauseTimer(); $("p-error").classList.add("on");
-  });
-}
-$("b-err-yes").addEventListener("click", function(){ $("p-error").classList.remove("on"); endTurn(); });
-$("b-err-no").addEventListener("click", function(){ $("p-error").classList.remove("on"); resumeTimer(); });
 
-function endTurn(){
-  clearInterval(timerId);
-  soundFinDeTour();
-  var resteDesThemes = G.cartes_en_jeu.some(function(c){ return c.statut!=="devine"; });
-  if (!resteDesThemes){ endManche(); return; }
-  G.equipe_courante = (G.equipe_courante+1) % G.teams.length;
-  setupTurn();
-}
+  function fetchCsvAvecCache(cb){
+    Papa.parse(CSV_URL, {
+      download:true, header:true, skipEmptyLines:true,
+      complete:function(results){
+        var rows = rowsFromParsed(results.data || []);
+        if (rows.length){
+          try { localStorage.setItem(STORAGE_CSV_CACHE, JSON.stringify(rows)); } catch(e){}
+          cb(rows);
+        } else {
+          cb(lireCacheCsvOuExemple());
+        }
+      },
+      error:function(){ cb(lireCacheCsvOuExemple()); }
+    });
+  }
+  function lireCacheCsvOuExemple(){
+    try {
+      var raw = localStorage.getItem(STORAGE_CSV_CACHE);
+      if (raw) return JSON.parse(raw);
+    } catch(e){}
+    return SAMPLE_ROWS.slice();
+  }  
 
-function endManche(){
-  var wrap = $("em-scores"); wrap.innerHTML="";
-  G.teams.forEach(function(t){
-    var d=document.createElement("div"); d.className="score-row";
-    d.style.borderLeft = "5px solid "+t.couleur;
-    d.style.background = "linear-gradient(90deg,"+t.couleur+"22,var(--bg-raised) 25%)";
-    d.innerHTML = "<span>"+t.emoji+" "+t.nom+"</span><span>manche: "+t.scores_manches[G.manche_courante-1]+" · total: "+t.score_cumule+"</span>";
-    wrap.appendChild(d);
+  // ---- Persisted selection / mémoire de tirage ---------------------------
+  function loadSouscatsUtilisees(){
+    try { return new Set(JSON.parse(localStorage.getItem(STORAGE_SOUSCATS_UTILISEES) || "[]")); }
+    catch(e){ return new Set(); }
+  }
+  function saveSouscatsUtilisees(){
+    try { localStorage.setItem(STORAGE_SOUSCATS_UTILISEES, JSON.stringify(Array.from(souscategoriesUtilisees))); } catch(e){}
+  }
+  function loadMissionsVues(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_MISSIONS_VUES) || "{}"); }
+    catch(e){ return {}; }
+  }
+  function saveMissionsVues(){
+    try { localStorage.setItem(STORAGE_MISSIONS_VUES, JSON.stringify(missionsVues)); } catch(e){}
+  }
+
+  // ---- Bootstrap ----------------------------------------------------------
+  function bootstrap(){
+      verifierExpiration7Jours();
+      missionsEcartees = loadMissionsEcartees();
+      $("loading-note").style.display = "block";
+      updatePlayButtonState();
+      fetchCsvAvecCache(function(rows){
+        allRows = rows;
+        dataReady = true;
+        $("loading-note").style.display = "none";
+        updatePlayButtonState();
+      });
+  }
+
+  // ---- Joueurs ----------------------------------------------------------
+  function goToPlayers(){
+    varianteDeuxRegles = false;   // ← ajout
+    renderPlayersGrid();
+    updatePlayButtonState();
+    showScreen("players-select");
+  }
+  
+  function updatePlayButtonState(){
+    var actif = dataReady && playerCount !== null;
+    $("btn-players-play").disabled = !actif;
+    $("btn-players-play-variante").disabled = !actif;
+  }
+  
+  function renderPlayersGrid(){
+    var wrap = $("players-grid");
+    wrap.innerHTML = "";
+    PLAYER_COUNTS.forEach(function(n){
+      var opt = document.createElement("button");
+      opt.className = "rv-player-opt"; opt.type = "button";
+      opt.setAttribute("aria-pressed", playerCount === n ? "true" : "false");
+      opt.innerHTML = n + "<span>joueurs</span>";
+      opt.addEventListener("click", function(){
+        playerCount = n;
+        renderPlayersGrid();
+        updatePlayButtonState();
+      });
+      wrap.appendChild(opt);
+    });
+  }
+
+  $("btn-players-play").addEventListener("click", function(){
+    varianteDeuxRegles = false;
+    startPartie();
   });
-  show("s-endmanche");
-}
-$("b-em-rules").addEventListener("click", function(){ window.open(RULES_URL,"_blank"); });
-$("b-em-next").addEventListener("click", function(){
-  if (G.manche_courante < 3){ G.manche_courante++; startManche(); }
-  else { endGame(); }
-});
-
-function endGame(){
-  var wrap = $("end-scores"); wrap.innerHTML="";
-  var sorted = G.teams.slice().sort(function(a,b){return b.score_cumule-a.score_cumule;});
-  sorted.forEach(function(t,i){
-    var d=document.createElement("div"); d.className="score-row";
-    d.style.borderLeft = "5px solid "+t.couleur;
-    d.style.background = "linear-gradient(90deg,"+t.couleur+(i===0?"33":"18")+",var(--bg-raised) 25%)";
-    d.innerHTML = "<span>"+(i===0?"🏆 ":"")+t.emoji+" "+t.nom+"</span><span>"+t.score_cumule+" pts</span>";
-    wrap.appendChild(d);
+  $("btn-players-play-variante").addEventListener("click", function(){
+    varianteDeuxRegles = true;
+    startPartie();
   });
-  $("end-themes-title").textContent = "Les "+G.cartes_en_jeu.length+" thèmes";
-  var tw = $("end-themes"); tw.innerHTML="";
-  G.cartes_en_jeu.forEach(function(c){
-    var d=document.createElement("div"); d.className="card"; d.style.fontSize="14px"; d.textContent=c.txt;
-    tw.appendChild(d);
+
+  // ---- Partie / tirage ----------------------------------------------------
+  function startPartie(){
+    souscategoriesUtilisees = loadSouscatsUtilisees();
+    missionsVues = loadMissionsVues();
+    categoriesVues = new Set();
+    manche = 0;
+    resetStageVisual();
+    showScreen("stage");
+    tirerMissionSuivante(true);
+  }
+
+  function resetStageVisual(){
+    $("manche-number").textContent = "—";
+    $("stage-idle").style.display = "flex";
+    $("stage-card").classList.remove("rv-visible");
+    $("stage-empty").classList.remove("rv-visible");
+    $("spotlight").classList.remove("rv-on");
+    $("btn-skip").disabled = true;
+  }
+
+  function buildEligiblePool(){
+    var champ = "cartes_" + playerCount;
+    return allRows.filter(function(r){
+      if (missionsEcartees.has(missionKey(r))) return false;
+      if (!parseCartesOptions(r[champ]).length) return false;
+      var seuil = parseInt(r.top_rattrapage, 10);
+      if (!isNaN(seuil) && manche < seuil) return false;
+      return true;
+    });
+  }
+
+  function piocherUneMission(pool){
+    if (!pool.length) return null;
+  
+    // Niveau 1 : catégorie
+    var categoriesDansPool = uniqueBy(pool, "categorie").map(function(c){ return c.key; });
+    var categoriesRestantes = categoriesDansPool.filter(function(k){ return !categoriesVues.has(k); });
+    if (!categoriesRestantes.length){
+      categoriesVues = new Set();
+      categoriesRestantes = categoriesDansPool.slice();
+    }
+    var categorieChoisie = categoriesRestantes[Math.floor(Math.random() * categoriesRestantes.length)];
+    categoriesVues.add(categorieChoisie);
+  
+    var poolCategorie = pool.filter(function(r){ return normalizeKey(r.categorie) === categorieChoisie; });
+  
+    // Niveau 2 : sous-catégorie
+    var subcatsDansCategorie = uniqueBy(poolCategorie, "souscategorie").map(function(c){ return c.key; });
+    var subcatsRestantes = subcatsDansCategorie.filter(function(k){ return !souscategoriesUtilisees.has(k); });
+    if (!subcatsRestantes.length){
+      subcatsDansCategorie.forEach(function(k){ souscategoriesUtilisees.delete(k); });
+      subcatsRestantes = subcatsDansCategorie.slice();
+    }
+    var subcatChoisie = subcatsRestantes[Math.floor(Math.random() * subcatsRestantes.length)];
+    souscategoriesUtilisees.add(subcatChoisie);
+    saveSouscatsUtilisees();
+  
+    // Niveau 3 : mission
+    var missionsSubcat = poolCategorie.filter(function(r){ return normalizeKey(r.souscategorie) === subcatChoisie; });
+    var missionsNonVues = missionsSubcat.filter(function(r){ return !missionsVues[missionKey(r)]; });
+    if (!missionsNonVues.length){
+      missionsSubcat.forEach(function(r){ missionsVues[missionKey(r)] = false; });
+      missionsNonVues = missionsSubcat.slice();
+    }
+    var mission = missionsNonVues[Math.floor(Math.random() * missionsNonVues.length)];
+    missionsVues[missionKey(mission)] = true;
+    saveMissionsVues();
+  
+    return mission;
+  }
+  
+  function tirerDeuxiemeMission(pool, mission1){
+    var exclus = parseIncompatibles(mission1.incompatibilites);
+    var poolCompatible = pool.filter(function(r){
+      var k = missionKey(r);
+      return k !== missionKey(mission1) && exclus.indexOf(k) === -1;
+    });
+    if (!poolCompatible.length) return null; // filet de sécurité, voir note plus bas
+    return piocherUneMission(poolCompatible);
+  }
+  
+  function tirerMissionSuivante(incrementerManche){
+    if (incrementerManche) manche++;
+    $("manche-number").textContent = manche;
+  
+    var pool = buildEligiblePool();
+    if (!pool.length){ showEmpty(); return; }
+  
+    var mission1 = piocherUneMission(pool);
+    var mission2 = varianteDeuxRegles ? tirerDeuxiemeMission(pool, mission1) : null;
+  
+    missionCourante2 = mission2;
+    afficherMission(mission1, mission2);
+  }
+  
+  function loadMissionsEcartees(){
+    try { return new Set(JSON.parse(localStorage.getItem(STORAGE_MISSIONS_ECARTEES) || "[]")); }
+    catch(e){ return new Set(); }
+  }
+  function saveMissionsEcartees(){
+    try { localStorage.setItem(STORAGE_MISSIONS_ECARTEES, JSON.stringify(Array.from(missionsEcartees))); } catch(e){}
+  }
+
+  function appliquerCouleurMission(couleur, suffix, blocId){
+      var c = (couleur || "").trim();
+      var couleurFinale = /^#[0-9A-Fa-f]{6}$/.test(c) ? c : "var(--spot)";
+      $("card-titre" + suffix).style.color = couleurFinale;
+      $(blocId).style.setProperty("--mission-color", couleurFinale);
+  }
+  
+  function choisirNombreCartes(mission1, mission2){
+    var champ = "cartes_" + playerCount;
+    var opts1 = parseCartesOptions(mission1[champ]);
+    if (!mission2) return opts1[Math.floor(Math.random() * opts1.length)];
+  
+    var opts2 = parseCartesOptions(mission2[champ]);
+    if (opts1.length === 1 && opts2.length === 1) return Math.min(opts1[0], opts2[0]);
+    if (opts1.length === 1) return opts1[0];
+    if (opts2.length === 1) return opts2[0];
+    return opts1[Math.floor(Math.random() * opts1.length)];
+  }
+  
+
+
+  function showEmpty(){
+    $("stage-idle").style.display = "none";
+    $("stage-card").classList.remove("rv-visible");
+    $("stage-empty").classList.add("rv-visible");
+    $("spotlight").classList.remove("rv-on");
+    $("btn-skip").disabled = true;
+    $("btn-next-manche").style.background = "";
+  }
+
+  
+  function remplirFace(suffix, mission, compact){
+    $("card-titre" + suffix).textContent = mission.titre;
+    $("card-texte" + suffix).innerHTML = sanitizeCardText(mission.texte, compact);
+    var blocId = suffix === "" ? "mission-bloc-1" : "mission-bloc-2";
+    appliquerCouleurMission(mission.couleur, suffix, blocId);
+  }
+  
+  function afficherMission(mission1, mission2){
+    $("stage-idle").style.display = "none";
+    $("stage-empty").classList.remove("rv-visible");
+  
+    var n = choisirNombreCartes(mission1, mission2);
+    $("card-cartes").innerHTML = "<span class=\"rv-cartes-nombre\">" + n + "</span> " + (n > 1 ? "cartes" : "carte");
+
+    var compact = !!mission2;
+    remplirFace("", mission1, compact);
+  
+    if (mission2){
+      $("mission-bloc-2").hidden = false;
+      remplirFace("-2", mission2, compact);
+    } else {
+      $("mission-bloc-2").hidden = true;
+    }
+  
+    $("stage-card").classList.add("rv-visible");
+    $("spotlight").classList.add("rv-on");
+    $("btn-skip").disabled = false;
+  
+    requestAnimationFrame(ajusterBlocsMissions);
+  }
+
+    
+  function ajusterBlocsMissions(){
+      var card = $("stage-card");
+      var cartesEl = $("card-cartes");
+      var bloc2Visible = !$("mission-bloc-2").hidden;
+  
+      var totalH = card.clientHeight;
+      var reserve = cartesEl.offsetHeight + 14; // gap sous la pastille
+      var dispoH = Math.max(totalH - reserve, 80);
+  
+      var titreMax = bloc2Visible ? 26 : 36;
+      var texteMax = bloc2Visible ? 20 : 28;
+      var titreMin = 12;
+      var texteMin = 11;
+  
+      var suffixes = bloc2Visible ? ["", "-2"] : [""];
+  
+      // On repart toujours du plafond, sur les deux boîtes à la fois
+      suffixes.forEach(function(suffix){
+        $("card-titre" + suffix).style.fontSize = titreMax + "px";
+        $("card-texte" + suffix).style.fontSize = texteMax + "px";
+      });
+  
+      function hauteurTotale(){
+        var h = $("mission-bloc-1").offsetHeight;
+        if (bloc2Visible) h += 14 + $("mission-bloc-2").offsetHeight; // 14 = gap de .rv-card
+        return h;
+      }
+  
+      // Étape 1 : si ça déborde, on réduit les DEUX textes ensemble
+      var texteTaille = texteMax;
+      var garde = 0;
+      while (hauteurTotale() > dispoH && texteTaille > texteMin && garde < 60){
+        texteTaille -= 1;
+        suffixes.forEach(function(suffix){
+          $("card-texte" + suffix).style.fontSize = texteTaille + "px";
+        });
+        garde++;
+      }
+  
+      // Étape 2 : si ça déborde encore, on réduit les DEUX titres ensemble
+      var titreTaille = titreMax;
+      garde = 0;
+      while (hauteurTotale() > dispoH && titreTaille > titreMin && garde < 60){
+        titreTaille -= 1;
+        suffixes.forEach(function(suffix){
+          $("card-titre" + suffix).style.fontSize = titreTaille + "px";
+        });
+        garde++;
+      }
+  }
+
+  window.addEventListener("resize", function(){
+    if ($("stage-card").classList.contains("rv-visible")) ajusterBlocsMissions();
   });
-  show("s-end");
-}
-$("b-end-new").addEventListener("click", function(){ show("s-home"); });
 
-// ---------- Quitter ----------
-$("b-game-quit").addEventListener("click", function(){ pauseTimer(); $("p-quit").classList.add("on"); });
-$("b-quit-no").addEventListener("click", function(){ $("p-quit").classList.remove("on"); resumeTimer(); });
-$("b-quit-yes").addEventListener("click", function(){ $("p-quit").classList.remove("on"); show("s-home"); });
+  $("btn-next-manche").addEventListener("click", function(){ tirerMissionSuivante(true); });
+  $("btn-skip").addEventListener("click", function(){ tirerMissionSuivante(false); });
+  $("btn-new-game").addEventListener("click", function(){
+    playerCount = null;
+    manche = 0;
+    resetStageVisual();
+    goToPlayers();
+  });
 
-show("s-home");
+  // ---- Settings ---------------------------------------------------------
+
+  renderPlayersGrid();
+  showScreen("players-select");
+  bootstrap();
 })();
 </script>
 </body>
